@@ -1,30 +1,58 @@
-# (Note for pokemontcg) *Need to figure how to handle invalid requests*
-# Solution 1: Exclusively use requests library
-# Solution 2: Use requests as validation, then use pokemontcg for getting data
+import requests
 
-from pokemontcgsdk import *                         # import all data from pokemontcg library                          
-import requests                                     # import requests library
+API_KEY = "pokeprice_free_3782ad58a346398eef2292808e87a8e7811b19e227ebf856"
+BASE_URL = "https://www.pokemonpricetracker.com/api/v2/cards"
+HEADERS = {
+    "Authorization": f"Bearer {API_KEY}"
+}
 
-base_url = "https://api.pokemontcg.io/v2/cards"     # base url for searching
 
-def get_card_info(card):                            # get card info from name function
-    url = f"{base_url}/{card}"                      # parce URL
-    response = requests.get(url)                    # GET from parced URL
+def get_card_info(query):
+    """
+    Search for a Pokémon card using the Pokémon Price Tracker API.
+    You can use the card name (e.g., 'Charizard') or an ID.
+    """
+    params = {
+        "search": query,      # Search term (name, set, or ID)
+        #"tcgPlayerId": query,
+        "includeHistory": "false",
+        "limit": 1            # Only return the top result
+    }
 
-    if response.status_code == 200:                 # If request was OK
-        card_data = response.json()                 # card_data = python dict from response
-        return card_data                            # return data
+    response = requests.get(BASE_URL, headers=HEADERS, params=params)
 
-    else:                                           # Request failed w/ temp terminal response
-        print("The card you were trying" \
-        " to find does not exist\n")
+    if response.status_code == 200:
+        data = response.json()
+        if data.get("data"):
+            return data["data"][0]  # Return the first match
+        else:
+            print("No card found with that name or ID.\n")
+            return None
+    else:
+        print(f"Error: {response.status_code} - {response.text}\n")
+        return None
 
-poke_card = input(str("Input Pokemon Card ID: "))   # temp terminal input (MUST BE ID  |  name search later)
-card_info = get_card_info(poke_card)                # execute function with input and output
+poke_card = input("Enter Pokémon card name or ID: ").strip()
+card_info = get_card_info(poke_card)
 
-if card_info:                                       # if got valid response + info
-    card_info = card_info["data"]                   # parse to object name "data" (why they make it like this ???)
-    
-    print(f"{card_info["name"]})")                  # (temp) print some stuff
-    print(f"{card_info["supertype"]})")
-    print(f"{card_info["subtypes"]})")
+if card_info:
+    name = card_info.get("name", "Unknown")
+    set_info = card_info.get("set", {}).get("name", "Unknown Set")
+    rarity = card_info.get("rarity", "Unknown Rarity")
+
+    print(f"\n{name} — {set_info}")
+    print(f"Rarity: {rarity}")
+
+    prices = card_info.get("prices", {})
+    if prices:
+        market = prices.get("market")
+        low = prices.get("low")
+        high = prices.get("high")
+
+        print("\n--- Current Prices (USD) ---")
+        if market: print(f"Market Price: ${market}")
+        if low: print(f"Lowest Price: ${low}")
+        if high: print(f"Highest Price: ${high}")
+    else:
+        print("No price data available.")
+
