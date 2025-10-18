@@ -2,57 +2,105 @@ import requests
 
 API_KEY = "pokeprice_free_3782ad58a346398eef2292808e87a8e7811b19e227ebf856"
 BASE_URL = "https://www.pokemonpricetracker.com/api/v2/cards"
-HEADERS = {
-    "Authorization": f"Bearer {API_KEY}"
-}
+HEADERS = {"Authorization": f"Bearer {API_KEY}"}
+HTTP_TIMEOUT = 10
 
+def _extract_first_card(obj):
+    """
+    Return the first card dict from ANY reasonable payload shape, or None.
+    Handles:
+      - {"data": [ ... ]}
+      - {"data": {"cards": [ ... ]}}
+      - {"cards": [ ... ]}
+      - {"results": [ ... ]}
+      - {"data": {...single card...}}
+      - {...single card...}
+    """
+    if obj is None:
+        return None
+
+    # If list, return first element (if present)
+    if isinstance(obj, list):
+        return obj[0] if obj else None
+
+    # If dict, try common keys or treat as single-card
+    if isinstance(obj, dict):
+        # If it already looks like a card
+        if any(k in obj for k in ("name", "rarity", "set", "prices")):
+            return obj
+
+        # Common container keys
+        for key in ("data", "cards", "results", "items"):
+            if key in obj:
+                return _extract_first_card(obj[key])
+
+    # Unknown shape
+    return None
+
+def _request_one(params, label):
+    """Make request, handle errors, and extract the first card without [] indexing bugs."""
+    try:
+        r = requests.get(BASE_URL, headers=HEADERS, params=params, timeout=HTTP_TIMEOUT)
+    except requests.RequestException as e:
+        print(f"[{label}] Network error: {e}\n")
+        return None
+
+    if r.status_code != 200:
+        print(f"[{label}] Error: {r.status_code} - {r.text[:200]}\n")
+        return None
+
+    try:
+        payload = r.json()
+    except ValueError:
+        print(f"[{label}] Invalid JSON response.\n")
+        return None
+
+    card = _extract_first_card(payload)
+    return card
 
 def get_card_info(query):
     """
-    Search for a Pokémon card using the Pokémon Price Tracker API.
-    You can use the card name (e.g., 'Charizard') or an ID.
+    Combined search:
+      - If the query is all digits, try tcgPlayerId first, then name.
+      - Otherwise try name first, then tcgPlayerId.
+    Returns the first matching card dict, or None.
     """
-    params = {
-        "search": query,      # Search term (name, set, or ID)
-        #"tcgPlayerId": query,
-        "includeHistory": "false",
-        "limit": 1            # Only return the top result
-    }
+    q = (query or "").strip()
+    looks_like_id = q.isdigit()
 
-    response = requests.get(BASE_URL, headers=HEADERS, params=params)
+    if looks_like_id:
+        # Try ID, then name
+        hit = _request_one({"tcgPlayerId": q, "includeHistory": "false", "limit": 1}, "byID")
+        return hit or _request_one({"search": q, "includeHistory": "false", "limit": 1}, "byName")
+    else:
+        # Try name, then ID
+        hit = _request_one({"search": q, "includeHistory": "false", "limit": 1}, "byName")
+        return hit or _request_one({"tcgPlayerId": q, "includeHistory": "false", "limit": 1}, "byID")
 
-    if response.status_code == 200:
-        data = response.json()
-        if data.get("data"):
-            return data["data"][0]  # Return the first match
+if __name__ == "__main__":
+    poke_card = input("Enter Pokémon card name or TCGplayer ID: ").strip()
+    card_info = get_card_info(poke_card)
+
+    if card_info:
+        name = card_info.get("name", "Unknown")
+        set_info = (card_info.get("set") or {}).get("name", "Unknown Set")
+        rarity = card_info.get("rarity", "Unknown Rarity")
+
+        print(f"\n{name} — {set_info}")
+        print(f"Rarity: {rarity}")
+
+        prices = card_info.get("prices", {})
+        if isinstance(prices, dict) and prices:
+            market = prices.get("market")
+            low = prices.get("low")
+            high = prices.get("high")
+
+            print("\n--- Current Prices (USD) ---")
+            if market is not None: print(f"Market Price: ${market}")
+            if low is not None: print(f"Lowest Price: ${low}")
+            if high is not None: print(f"Highest Price: ${high}")
         else:
-            print("No card found with that name or ID.\n")
-            return None
+            print("No price data available.")
     else:
-        print(f"Error: {response.status_code} - {response.text}\n")
-        return None
-
-poke_card = input("Enter Pokémon card name or ID: ").strip()
-card_info = get_card_info(poke_card)
-
-if card_info:
-    name = card_info.get("name", "Unknown")
-    set_info = card_info.get("set", {}).get("name", "Unknown Set")
-    rarity = card_info.get("rarity", "Unknown Rarity")
-
-    print(f"\n{name} — {set_info}")
-    print(f"Rarity: {rarity}")
-
-    prices = card_info.get("prices", {})
-    if prices:
-        market = prices.get("market")
-        low = prices.get("low")
-        high = prices.get("high")
-
-        print("\n--- Current Prices (USD) ---")
-        if market: print(f"Market Price: ${market}")
-        if low: print(f"Lowest Price: ${low}")
-        if high: print(f"Highest Price: ${high}")
-    else:
-        print("No price data available.")
+        print("No card found with that name or ID.\n")
 
