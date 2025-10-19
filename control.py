@@ -1,41 +1,110 @@
-# (Note for pokemontcg) *Need to figure how to handle invalid requests*
-# Solution 1: Exclusively use requests library
-# Solution 2: Use requests as validation, then use pokemontcg for getting data
-
-from pokemontcgsdk import *                         # import all data from pokemontcg library                          
+# INITIALIZATIONS ================================================================================#
 import requests                                     # import requests library
-from control import *
 
-base_url = "https://api.pokemontcg.io/v2/cards"     # base url for searching
+BASE_URL = "https://www.pokemonpricetracker.com/api/v2/cards"               # base url for searching
+API_KEY = "pokeprice_free_3782ad58a346398eef2292808e87a8e7811b19e227ebf856" # API key
+HEADERS = { "Authorization": f"Bearer {API_KEY}" }                          # connect authentication
+HTTP_TIMEOUT = 10                                                           
+#=================================================================================================#
 
-def get_card_info(poke_card):                            # get card info from name function
-    
-    url = f"{base_url}/{poke_card}"                      # parce URL
-    response = requests.get(url)                    # GET from parced URL
+# FUNCITONS ======================================================================================#
+def _extract_first_card(obj):
+    """
+    Return the first card dict from ANY reasonable payload shape, or None.
+    Handles:
+      - {"data": [ ... ]}
+      - {"data": {"cards": [ ... ]}}
+      - {"cards": [ ... ]}
+      - {"results": [ ... ]}
+      - {"data": {...single card...}}
+      - {...single card...}
+    """
+    if obj is None:
+        return None
 
-    if response.status_code == 200:                 # If request was OK
-        card_info = response.json()                 # card_data = python dict from response
-        card_info = card_info["data"]               # parse to object name "data" (why they make it like this ???)
-        print_info(card_info)
+    # If list, return first element (if present)
+    if isinstance(obj, list):
+        return obj[0] if obj else None
 
-    else:                                           # Request failed w/ temp terminal response
-        print("The card you were trying" \
-        " to find does not exist\n")
+    # If dict, try common keys or treat as single-card
+    if isinstance(obj, dict):
+        # If it already looks like a card
+        if any(k in obj for k in ("name", "rarity", "set", "prices")):
+            return obj
 
-def print_info(card_info):
-    # PRICE CONVERSION ===========================================================================#
-    con_price = (requests.get("https://open.er-api.com/v6/latest/EUR")).json() # Get all EUR conversions into json
-    
-    eur_price = card_info["cardmarket"]["prices"]["averageSellPrice"]
-    usd_price = con_price["rates"]["USD"] * eur_price
+        # Common container keys
+        for key in ("data", "cards", "results", "items"):
+            if key in obj:
+                return _extract_first_card(obj[key])
 
-    usd_price = "{:.2f}".format(usd_price)
-    #=============================================================================================#
+    # Unknown shape
+    return None
 
-    # * temp *
-    # PRINT INFO =================================================================================#
-    print(f"Name: {card_info["name"]}")
-    print(f"Supertype: {card_info["supertype"]}")
-    print(f"Rarity: {card_info["rarity"]}")
-    print(f"Price: USD ${usd_price}")
-    #=============================================================================================#
+def _request_one(params, label):
+    """Make request, handle errors, and extract the first card without [] indexing bugs."""
+    try:
+        r = requests.get(BASE_URL, headers=HEADERS, params=params, timeout=HTTP_TIMEOUT)
+    except requests.RequestException as e:
+        print(f"[{label}] Network error: {e}\n")
+        return None
+
+    if r.status_code != 200:
+        print(f"[{label}] Error: {r.status_code} - {r.text[:200]}\n")
+        return None
+
+    try:
+        payload = r.json()
+    except ValueError:
+        print(f"[{label}] Invalid JSON response.\n")
+        return None
+
+    card = _extract_first_card(payload)
+    return card
+
+# FUNCTION ONLY NEEDED BY VIEW ===========================================================#
+def get_card_info(query):
+    """
+     Combined search:
+      - If the query is all digits, try tcgPlayerId first, then name.
+      - Otherwise try name first, then tcgPlayerId.
+    Returns the first matching card dict, or None.
+    """
+    q = (query or "").strip()
+    looks_like_id = q.isdigit()
+
+    if looks_like_id:
+        # Try ID, then name
+        hit = _request_one({"tcgPlayerId": q, "includeHistory": "false", "limit": 1}, "byID")
+        return hit or _request_one({"search": q, "includeHistory": "false", "limit": 1}, "byName")
+    else:
+        hit = _request_one({"search": q, "includeHistory": "false", "limit": 1}, "byName")
+        return hit or _request_one({"tcgPlayerId": q, "includeHistory": "false", "limit": 1}, "byID")
+#=================================================================================================#
+
+# syntax for view
+if __name__ == "__main__":
+    poke_card = input("Enter Pokémon card name or TCGplayer ID: ").strip()
+    card_info = get_card_info(poke_card)
+
+    if card_info:
+        name = card_info.get("name", "Unknown")
+        set_info = (card_info.get("set") or {}).get("name", "Unknown Set")
+        rarity = card_info.get("rarity", "Unknown Rarity")
+        print(f"\n{name} — {set_info}")
+        print(f"Rarity: {rarity}")
+
+        prices = card_info.get("prices", {})
+        if isinstance(prices, dict) and prices:
+            market = prices.get("market")
+            low = prices.get("low")
+            high = prices.get("high")
+        
+            print("\n--- Current Prices (USD) ---")
+            if market is not None: print(f"Market Price: ${market}")
+            if low is not None: print(f"Lowest Price: ${low}")
+            if high is not None: print(f"Highest Price: ${high}")
+        else:
+            print("No price data available.")
+    else:
+        print("No card found with that name or ID.\n")
+#=================================================================================================#
