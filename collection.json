@@ -1,29 +1,5 @@
 [
   {
-    "name": "Pikachu",
-    "set": "Unknown Set",
-    "rarity": "Common",
-    "market": 5.52,
-    "tcgPlayerId": "88086",
-    "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/88086_in_600x600.jpg"
-  },
-  {
-    "name": "Darkrai & Cresselia Legend (Top)",
-    "set": "Unknown Set",
-    "rarity": "Ultra Rare",
-    "market": 121.56,
-    "tcgPlayerId": "84705",
-    "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/84705_in_600x600.jpg"
-  },
-  {
-    "name": "Dark Alakazam (18)",
-    "set": "Unknown Set",
-    "rarity": "Rare",
-    "market": 12.63,
-    "tcgPlayerId": "84560",
-    "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/84560_in_600x600.jpg"
-  },
-  {
     "name": "Lugia EX (94 Full Art)",
     "set": "Unknown Set",
     "rarity": "Ultra Rare",
@@ -32,11 +8,11 @@
     "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/101516_in_600x600.jpg"
   },
   {
-    "name": "Lugia VSTAR (Secret) (211)",
+    "name": "Pikachu",
     "set": "Unknown Set",
-    "rarity": "Secret Rare",
-    "market": 31.4,
-    "tcgPlayerId": "452009",
-    "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/452009_in_600x600.jpg"
+    "rarity": "Common",
+    "market": 5.52,
+    "tcgPlayerId": "88086",
+    "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/88086_in_600x600.jpg"
   }
 ]
