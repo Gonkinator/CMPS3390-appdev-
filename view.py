@@ -116,7 +116,7 @@ def save_current_card():
 
 def persist_collection():
     try:
-        with open(COLLECTION_FILE, "w", encoding="utf-8") as f:
+        with open(COLLECTION_FILE, "w") as f:
             json.dump(collection, f, ensure_ascii=False, indent=2)
             cursor.executemany("INSERT INTO cards (name, set, rarity, market, image_url) VALUES (?, ?, ?, ?, ?)", collection)
             conn.commit()
