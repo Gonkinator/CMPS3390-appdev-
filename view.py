@@ -51,6 +51,12 @@ def show_add():
     page = pages[1]
     page.pack()
 
+def show_users():
+    for p in pages:
+        p.pack_forget()
+    page = pages[2]
+    page.pack()
+
 def update_add_view():
     pokemon_image.config(image=photo) 
     pokemon_name.config(text=f"Card Name: {name}")
@@ -181,7 +187,7 @@ def clear_collection_filter():
 #=================================================================================================#
 # INITIALIZE WINDOW ==============================================================================#
 root = Tk()
-root.geometry('1280x720')
+root.geometry('1920x1080')
 root.title("Pokemon Card Manager")
 
 filter_field_var = StringVar(master=root, value="Name")
@@ -193,9 +199,12 @@ main_frame = Frame(root)
 #double nested frame start screen
 start = Frame(main_frame)
 
+#start frame
+#-------------------------------------------------------------
+
 title = Label(start,text="Welcome to the Pokemon Card Manager")
-##put it top left aka 0,0 w means left justified, 20 pad top 10 bottom, 12 on sides
-title.grid(row=0, column=0, sticky='w', pady=(20, 10), padx=12)
+
+title.grid(row=0, column=0, sticky='w')
 
 add_button = Button(start,
                     text="ADD CARD",
@@ -203,7 +212,16 @@ add_button = Button(start,
                     command=show_add
                    )
 
-add_button.grid(row=0, column=1, sticky='e', padx=12)
+add_button.grid(row=0, column=2, sticky='e')
+
+user_button = Button(start,
+                     text = "User Page",
+                     command=show_users
+                     )
+user_button.grid(row=0, column=1, sticky='w')
+
+#filter frame(inside start frame)
+#-------------------------------------------------------
 
 filter_frame = Frame(start)
 filter_frame.grid(row=1, column=0, columnspan=2, sticky='we', padx=12, pady=(5, 16))
@@ -236,8 +254,12 @@ clear_btn = Button(filter_frame,
                    text="CLEAR",
                    command=clear_collection_filter)
 clear_btn.grid(row=0, column=4)
+#end filter frame
+#-----------------------------------------------------------------------
 
 
+
+#collection list
 columns = ("Name", "Set", "Rarity", "Market Value")
 collection_tree = ttk.Treeview(start, columns=columns, show="headings", height=20)
 for col in columns:
@@ -256,10 +278,16 @@ remove_btn = Button(start,
 
 remove_btn.grid(row=3, column=1, sticky='e', padx=12, pady=12)
 
+#end start frame
+#-----------------------------------------------------------
+
+
+#start add frame view
+#-------------------------------------------------------------------------
 add = Frame(main_frame)
 
-entry_lb = Label(add,text="Enter TCGplayer ID or Card Name")
-entry_lb.grid(row=1, column=0, padx=5)
+entry_label = Label(add,text="Enter TCGplayer ID or Card Name")
+entry_label.grid(row=1, column=0, padx=5)
 
 entry = Entry(add,
               width=15,
@@ -306,13 +334,42 @@ pokemon_rarity = Label(add,
                       )
 pokemon_rarity.grid(row=5, column=0, columnspan=3)
 
-pokemon_market = Label(add,
-                       text=f"",
-                      )
+pokemon_market = Label(add,text=f"")
 pokemon_market.grid(row=6, column=0, columnspan=3)
+#end add frame
+#-----------------------------------------------------------------
 
 main_frame.pack(fill=BOTH, expand=True)
-pages = [start, add]
+
+
+
+
+#start user frame
+#-------------------------------------------------------------------
+users = Frame(main_frame)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#end user frame
+#--------------------------------------------------------------------
+
+pages = [start, add, users]
 
 
 buttons_frame = Frame(root)
