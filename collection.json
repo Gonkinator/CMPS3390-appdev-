@@ -30,5 +30,21 @@
     "market": 101.41,
     "tcgPlayerId": "84208",
     "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/84208_in_600x600.jpg"
+  },
+  {
+    "name": "Lugia EX (94 Full Art)",
+    "set": "Unknown Set",
+    "rarity": "Ultra Rare",
+    "market": 165.9,
+    "tcgPlayerId": "101516",
+    "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/101516_in_600x600.jpg"
+  },
+  {
+    "name": "Lugia VSTAR (Secret) (211)",
+    "set": "Unknown Set",
+    "rarity": "Secret Rare",
+    "market": 31.4,
+    "tcgPlayerId": "452009",
+    "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/452009_in_600x600.jpg"
   }
 ]
