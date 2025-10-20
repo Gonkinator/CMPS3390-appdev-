@@ -7,6 +7,7 @@ import urllib.request
 import io
 import json
 import os
+import sqlite3
 
 
 
@@ -21,6 +22,19 @@ COLLECTION_FILE = "collection.json"
 filter_field_options = ("Name", "Set", "Rarity")
 filter_field_var = None
 filter_text_var = None
+
+conn = sqlite3.connect("pokemon_cards_colection.db")
+cursor = conn.cursor()
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    "set" TEXT NOT NULL,
+    rarity TEXT NOT NULL,
+    market REAL NOT NULL,
+    image_url TEXT NOT NULL
+)""")
+conn.commit()
 
 
 #=================================================================================================#
@@ -104,6 +118,8 @@ def persist_collection():
     try:
         with open(COLLECTION_FILE, "w", encoding="utf-8") as f:
             json.dump(collection, f, ensure_ascii=False, indent=2)
+            cursor.executemany("INSERT INTO cards (name, set, rarity, market, image_url) VALUES (?, ?, ?, ?, ?)", collection)
+            conn.commit()
     except Exception as e:
         print(f"Failed to save collection: {e}")
 
@@ -171,40 +187,28 @@ root.title("Pokemon Card Manager")
 filter_field_var = StringVar(master=root, value="Name")
 filter_text_var = StringVar(master=root, value="")
 
-
-
-
+#root frame
 main_frame = Frame(root)
-#=================================================================================================#
-# START (HOME) PAGE =============================================================================#
+
+#double nested frame start screen
 start = Frame(main_frame)
 
-title = Label(start,
-              text="Pokemon Card Collection",
-             )
+title = Label(start,text="Welcome to the Pokemon Card Manager")
+##put it top left aka 0,0 w means left justified, 20 pad top 10 bottom, 12 on sides
 title.grid(row=0, column=0, sticky='w', pady=(20, 10), padx=12)
 
 add_button = Button(start,
                     text="ADD CARD",
-                    font=("fixedsys", 16),
                     width=12,
-                    relief=FLAT,
                     command=show_add
                    )
 
 add_button.grid(row=0, column=1, sticky='e', padx=12)
 
-# Filter controls (stubs)
-filter_frame = Frame(start,
-                    
-                     padx=12,
-                     pady=10)
+filter_frame = Frame(start)
 filter_frame.grid(row=1, column=0, columnspan=2, sticky='we', padx=12, pady=(5, 16))
 
-filter_label = Label(filter_frame,
-                     
-                     text="Filter:",
-                     font=("fixedsys", 12))
+filter_label = Label(filter_frame, text="Filter:")
 filter_label.grid(row=0, column=0, padx=(0, 8), sticky='w')
 
 filter_field = ttk.Combobox(filter_frame,
@@ -212,100 +216,60 @@ filter_field = ttk.Combobox(filter_frame,
                             textvariable=filter_field_var,
                             state="readonly",
                             width=12,
-                            style="Input.TCombobox",
                             justify="center")
 filter_field.grid(row=0, column=1, padx=(0, 8))
 
 filter_entry = Entry(filter_frame,
                      textvariable=filter_text_var,
-                     font=("fixedsys", 14),
                      width=24,
-                     
                      highlightthickness=0,
-                     relief=FLAT,
                      )
 filter_entry.grid(row=0, column=2, padx=(0, 8))
 filter_entry.bind("<Return>", apply_collection_filter)
 
 filter_btn = Button(filter_frame,
                     text="FILTER",
-                    
-                    font=("fixedsys", 12),
-                    command=apply_collection_filter,
-                    relief=FLAT)
-
+                    command=apply_collection_filter)
 filter_btn.grid(row=0, column=3, padx=(0, 6))
 
 clear_btn = Button(filter_frame,
                    text="CLEAR",
-                   
-                   font=("fixedsys", 12),
-                   command=clear_collection_filter,
-                   relief=FLAT)
-
+                   command=clear_collection_filter)
 clear_btn.grid(row=0, column=4)
 
-# Treeview for collection
-columns = ("Name", "Set", "Rarity", "Market")
+
+columns = ("Name", "Set", "Rarity", "Market Value")
 collection_tree = ttk.Treeview(start, columns=columns, show="headings", height=20)
 for col in columns:
     collection_tree.heading(col, text=col)
     collection_tree.column(col, anchor='w', width=140)
-collection_tree.tag_configure("odd")
-collection_tree.tag_configure("even")
 collection_tree.grid(row=2, column=0, columnspan=2, padx=(12, 0), sticky='nsew')
 
-# Scrollbar
-scrollbar = ttk.Scrollbar(start, orient=VERTICAL, command=collection_tree.yview, style="Vertical.TScrollbar")
-collection_tree.configure(yscroll=scrollbar.set)
-scrollbar.grid(row=2, column=2, sticky='ns', padx=(0, 12))
 
-# Total and remove controls
-total_value_lbl = Label(start,
-                        
-                        text="Total Value: $0.00",
-                        font=("fixedsys", 14))
+
+total_value_lbl = Label(start,text="Total Value: $0.00")
 total_value_lbl.grid(row=3, column=0, sticky='w', padx=12, pady=12)
 
 remove_btn = Button(start,
-                    
                     text="REMOVE SELECTED",
-                    font=("fixedsys", 14),
-                    command=remove_selected,
-                    relief=FLAT)
+                    command=remove_selected)
 
 remove_btn.grid(row=3, column=1, sticky='e', padx=12, pady=12)
 
-start.grid_columnconfigure(0, weight=1)
-start.grid_rowconfigure(2, weight=1)
-#=================================================================================================#
-# ADD PAGE =======================================================================================#
 add = Frame(main_frame)
 
-entry_lb = Label(add,
-                 
-                 text="Enter TCGplayer ID or Card Name",
-                 font=("fixedsys", 12)
-                )
+entry_lb = Label(add,text="Enter TCGplayer ID or Card Name")
 entry_lb.grid(row=1, column=0, padx=5)
 
 entry = Entry(add,
-              
-              font=("fixedsys", 20),
               width=15,
-              relief=FLAT,
-              highlightthickness=0,
-    
-             )
+              highlightthickness=0)
 entry.grid(row=1, column=1)
 entry.bind("<Return>", add_card)
 
 entry_search = Button(add,
-                     
                       text="ADD",
-                      font=("fixedsys", 20),
                       width=6,
-                      relief=FLAT,
                       command=add_card
                      )
 
@@ -313,17 +277,12 @@ entry_search.grid(row=1, column=2)
 
 back_btn = Button(add,
                   text="BACK",
-                  font=("fixedsys", 14),
-                  command=show_start,
-                  relief=FLAT)
-
+                  command=show_start)
 back_btn.grid(row=0, column=0, sticky='w', padx=10, pady=10)
 
 save_btn = Button(add,
                   text="SAVE TO COLLECTION",
-                  font=("fixedsys", 16),
-                  command=save_current_card,
-                  relief=FLAT)
+                  command=save_current_card)
 
 save_btn.grid(row=0, column=2, sticky='e', padx=10, pady=10)
 
@@ -334,33 +293,27 @@ pokemon_image.grid(row=2, column=0, columnspan=3)
 
 pokemon_name = Label(add,
                      text=f"",
-                     font=("fixedsys", 20)
                     )
 pokemon_name.grid(row=3, column=0, columnspan=3)
 
 pokemon_type = Label(add,
-                     text=f"",
-                     font=("fixedsys", 20)
+                     text=f""
                     )
 pokemon_type.grid(row=4, column=0, columnspan=3)
 
 pokemon_rarity = Label(add,
-                       
-                       text=f"",
-                       font=("fixedsys", 20)
+                       text=f""
                       )
 pokemon_rarity.grid(row=5, column=0, columnspan=3)
 
 pokemon_market = Label(add,
                        text=f"",
-                       font=("fixedsys", 20)
                       )
 pokemon_market.grid(row=6, column=0, columnspan=3)
-#=================================================================================================#
-# MAIN FRAME PACK ================================================================================#
+
 main_frame.pack(fill=BOTH, expand=True)
 pages = [start, add]
-#=================================================================================================#
+
 
 buttons_frame = Frame(root)
 buttons_frame.pack()
