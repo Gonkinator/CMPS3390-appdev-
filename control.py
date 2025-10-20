@@ -1,10 +1,13 @@
-import requests
+# INITIALIZATIONS ================================================================================#
+import requests                                     # import requests library
 
-API_KEY = "pokeprice_free_3782ad58a346398eef2292808e87a8e7811b19e227ebf856"
-BASE_URL = "https://www.pokemonpricetracker.com/api/v2/cards"
-HEADERS = {"Authorization": f"Bearer {API_KEY}"}
-HTTP_TIMEOUT = 10
+BASE_URL = "https://www.pokemonpricetracker.com/api/v2/cards"               # base url for searching
+API_KEY = "pokeprice_free_3782ad58a346398eef2292808e87a8e7811b19e227ebf856" # API key
+HEADERS = { "Authorization": f"Bearer {API_KEY}" }                          # connect authentication
+HTTP_TIMEOUT = 10                                                           
+#=================================================================================================#
 
+# FUNCITONS ======================================================================================#
 def _extract_first_card(obj):
     """
     Return the first card dict from ANY reasonable payload shape, or None.
@@ -58,9 +61,10 @@ def _request_one(params, label):
     card = _extract_first_card(payload)
     return card
 
+# FUNCTION ONLY NEEDED BY VIEW ===========================================================#
 def get_card_info(query):
     """
-    Combined search:
+     Combined search:
       - If the query is all digits, try tcgPlayerId first, then name.
       - Otherwise try name first, then tcgPlayerId.
     Returns the first matching card dict, or None.
@@ -73,10 +77,11 @@ def get_card_info(query):
         hit = _request_one({"tcgPlayerId": q, "includeHistory": "false", "limit": 1}, "byID")
         return hit or _request_one({"search": q, "includeHistory": "false", "limit": 1}, "byName")
     else:
-        # Try name, then ID
         hit = _request_one({"search": q, "includeHistory": "false", "limit": 1}, "byName")
         return hit or _request_one({"tcgPlayerId": q, "includeHistory": "false", "limit": 1}, "byID")
+#=================================================================================================#
 
+# syntax for view
 if __name__ == "__main__":
     poke_card = input("Enter Pokémon card name or TCGplayer ID: ").strip()
     card_info = get_card_info(poke_card)
@@ -85,7 +90,6 @@ if __name__ == "__main__":
         name = card_info.get("name", "Unknown")
         set_info = (card_info.get("set") or {}).get("name", "Unknown Set")
         rarity = card_info.get("rarity", "Unknown Rarity")
-
         print(f"\n{name} — {set_info}")
         print(f"Rarity: {rarity}")
 
@@ -94,7 +98,7 @@ if __name__ == "__main__":
             market = prices.get("market")
             low = prices.get("low")
             high = prices.get("high")
-
+        
             print("\n--- Current Prices (USD) ---")
             if market is not None: print(f"Market Price: ${market}")
             if low is not None: print(f"Lowest Price: ${low}")
@@ -103,4 +107,4 @@ if __name__ == "__main__":
             print("No price data available.")
     else:
         print("No card found with that name or ID.\n")
-
+#=================================================================================================#
